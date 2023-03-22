@@ -3,7 +3,7 @@
 
 A example of a multiplayer game using Phaser3, Socket.io and Nodejs
 
-**NPM Version:** 9.3.0
+
 
 ## Running on Localhost
 
@@ -16,3 +16,6 @@ Run server:
 ```bash
   npm run server
 ```
+
+
+**NPM Version:** 9.3.0
