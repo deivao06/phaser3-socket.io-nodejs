@@ -18,4 +18,6 @@ Run server:
 ```
 
 
-**NPM Version:** 9.3.0
+**NPM version:** 9.3.0
+
+**Node version:** 18.13.0
