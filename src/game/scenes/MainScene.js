@@ -20,8 +20,8 @@ export default class MainScene extends Phaser.Scene {
 
     this.gameClass = new Game();
 
+    this.otherPlayers = {};
     this.player = {};
-    this.otherPlayers = [];
 
     this.eventHandlers();
     this.cursors = this.input.keyboard.createCursorKeys()
@@ -36,7 +36,8 @@ export default class MainScene extends Phaser.Scene {
     this.socket.on('disconnect', this.onSocketDisconnect)
 
     this.socket.on('new player', this.onNewPlayer.bind(this))
-    this.socket.on('update state', this.onUpdateState.bind(this))
+    this.socket.on('create players', this.onCreateOtherPlayers.bind(this));
+    this.socket.on('update state', this.onUpdateState.bind(this));
   }
 
   onSocketConnected() {
@@ -72,22 +73,18 @@ export default class MainScene extends Phaser.Scene {
   onUpdateState(state) {
     this.gameClass.setState(state);
 
-    this.gameClass.state.players.forEach((player) => {
-      if(player.id != this.player.id){
+    this.handleOtherPlayersAnimation();
+    this.handleOtherPlayersMovement();    
+    this.handleOtherPlayersDisconnection();    
+  }
+
+  onCreateOtherPlayers(state) {
+    this.gameClass.setState(state);
+
+    for (const [id, player] of Object.entries(this.gameClass.state.players)) {
+      if(id != this.player.id){
         this.createOtherPlayer(player);
       }
-    })
-
-    //removing disconnected players sprite
-    if(this.otherPlayers.length > 0){
-      this.otherPlayers = this.otherPlayers.filter(x => {
-        if(this.gameClass.state.players.includes(x)){
-          return true;
-        }else{
-          x.sprite.destroy();
-          return false;
-        }
-      })
     }
   }
 
@@ -95,11 +92,11 @@ export default class MainScene extends Phaser.Scene {
     player.sprite = this.physics.add.sprite(player.x, player.y, 'tileset');
     player.sprite.setCollideWorldBounds(true);
     player.sprite.setScale(2);
-    player.sprite.tint = 0x4af705;
-    
-    player.sprite.anims.play('idle');
+    player.sprite.tint = 0xfff000;
 
-    this.otherPlayers.push(player);
+    player.sprite.anims.play(player.animation);
+
+    this.otherPlayers[player.id] = player;
   }
 
   handlePlayerInput() {
@@ -138,12 +135,59 @@ export default class MainScene extends Phaser.Scene {
 
       if(!running){
         this.player.sprite.anims.play('idle', true);
-      }
 
-      this.socket.emit('update player position', {
-        x: this.player.sprite.x,
-        y: this.player.sprite.y
-      })
+        this.socket.emit('update player position', {
+          x: this.player.sprite.x,
+          y: this.player.sprite.y,
+          animation: 'idle'
+        })
+      }else{
+        this.socket.emit('update player position', {
+          x: this.player.sprite.x,
+          y: this.player.sprite.y,
+          animation: 'run'
+        })
+      }
+    }
+  }
+
+  handleOtherPlayersMovement() {
+    if(Object.keys(this.otherPlayers).length > 0){
+      for (const [id, otherPlayer] of Object.entries(this.otherPlayers)) {
+        if(this.gameClass.state.players.hasOwnProperty(id)){
+          if(otherPlayer.sprite.x < this.gameClass.state.players[id].x){
+            otherPlayer.sprite.scaleX = 2;
+          }else if(otherPlayer.sprite.x > this.gameClass.state.players[id].x){
+            otherPlayer.sprite.scaleX = -2;
+          }
+          
+          otherPlayer.sprite.x = this.gameClass.state.players[id].x;
+          otherPlayer.sprite.y = this.gameClass.state.players[id].y;
+        }
+      }
+    }
+  }
+
+  handleOtherPlayersAnimation() {
+    if(Object.keys(this.otherPlayers).length > 0){
+      for (const [id, otherPlayer] of Object.entries(this.otherPlayers)) {
+        if(this.gameClass.state.players.hasOwnProperty(id)){
+          if (otherPlayer.sprite.anims.isPlaying && otherPlayer.sprite.anims.currentAnim.key != this.gameClass.state.players[id].animation) {
+            otherPlayer.sprite.anims.play(this.gameClass.state.players[id].animation);
+          }
+        }
+      }
+    }
+  }
+
+  handleOtherPlayersDisconnection() {
+    if(Object.keys(this.otherPlayers).length > 0){
+      for (const [id, otherPlayer] of Object.entries(this.otherPlayers)) {
+        if(!this.gameClass.state.players.hasOwnProperty(id)){
+          otherPlayer.sprite.destroy();
+          delete this.otherPlayers[id];
+        }
+      }
     }
   }
 }

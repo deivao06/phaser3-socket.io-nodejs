@@ -11,7 +11,7 @@ const config = {
 		}
 	},
 	pixelArt: true,
-	scene: [MainScene],
+	scene: [MainScene]
 }
 
 export default new Phaser.Game(config)

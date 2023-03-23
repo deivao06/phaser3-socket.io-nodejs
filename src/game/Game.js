@@ -2,7 +2,7 @@ export default class Game
 {
     constructor(){
         this.state = {
-            players: [],
+            players: {},
         }
     }
 
@@ -10,30 +10,21 @@ export default class Game
         var player = {
             id: playerId,
             x: this.getRandomInt(0, 200),
-            y: this.getRandomInt(0, 200)
+            y: this.getRandomInt(0, 200),
+            animation: 'idle',
         }
 
-        this.state.players.push(player);
+        this.state.players[playerId] = player;
 
         return player;
     }
 
     removePlayer(playerId) {
-        this.state.players = this.state.players.filter((player) => {
-            return player.id != playerId;
-        });
+        delete this.state.players[playerId];
     }
 
     updatePlayer(player) {
-        var updatedPlayers = this.state.players.map( statePlayer => {
-            if(statePlayer.id == player.id) {
-                return player;
-            }
-
-            return statePlayer;
-        });
-
-        this.state.players = updatedPlayers
+        this.state.players[player.id] = player;
     }
 
     setState(state) {

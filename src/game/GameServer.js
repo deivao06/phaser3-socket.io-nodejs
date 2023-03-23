@@ -19,12 +19,21 @@ export default class GameServer
                 socket.player = player;
 
                 socket.emit('new player', player);
-                this.io.emit('update state', this.game.getState());
+                this.io.emit('create players', this.game.getState());
             });
 
             socket.on('update player position', (position) => {
-                socket.player.x = position.x
-                socket.player.y = position.y
+                socket.player.x = position.x;
+                socket.player.y = position.y;               
+                socket.player.animation = position.animation;
+
+                this.game.updatePlayer(socket.player);
+
+                socket.broadcast.emit('update state', this.game.getState());
+            });
+
+            socket.on('update player animation', (animation) => {
+                socket.player.animation = animation;
 
                 this.game.updatePlayer(socket.player);
 
@@ -35,7 +44,7 @@ export default class GameServer
                 console.log(`User ${socket.id} disconnected`);
 
                 var player = socket.player;
-
+                
                 this.game.removePlayer(player.id);
                 this.io.emit('update state', this.game.getState());
             })
