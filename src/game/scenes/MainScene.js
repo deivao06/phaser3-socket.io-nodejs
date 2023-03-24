@@ -20,8 +20,8 @@ export default class MainScene extends Phaser.Scene {
 
     this.gameClass = new Game();
 
-    this.otherPlayers = {};
     this.player = {};
+    this.otherPlayers = {};
 
     this.eventHandlers();
     this.cursors = this.input.keyboard.createCursorKeys()
@@ -54,7 +54,9 @@ export default class MainScene extends Phaser.Scene {
     this.player.sprite = this.physics.add.sprite(this.player.x, this.player.y, 'tileset');
     this.player.sprite.setCollideWorldBounds(true);
     this.player.sprite.setScale(2);
-    
+    this.player.sprite.setSize(16, 16);
+    this.player.sprite.setOffset(0, 16);
+
     this.anims.create({
       key: 'idle',
       frames: this.anims.generateFrameNumbers('tileset', { start: 72, end: 74 }),
@@ -93,8 +95,13 @@ export default class MainScene extends Phaser.Scene {
     player.sprite.setCollideWorldBounds(true);
     player.sprite.setScale(2);
     player.sprite.tint = 0xfff000;
+    player.sprite.setSize(16, 16);
+    player.sprite.setOffset(0, 16);
+    player.sprite.setPushable(false);
 
     player.sprite.anims.play(player.animation);
+
+    this.physics.add.collider(this.player.sprite, player.sprite);
 
     this.otherPlayers[player.id] = player;
   }
@@ -105,13 +112,13 @@ export default class MainScene extends Phaser.Scene {
     if(Object.keys(this.player).length !== 0){
       if (this.cursors.left.isDown) {
         this.player.sprite.setVelocityX(-this.velocity);
-        this.player.sprite.scaleX = -2;
+        this.player.sprite.setFlipX(true);
 
         this.player.sprite.anims.play('run', true)
         running = true
       } else if (this.cursors.right.isDown) {
         this.player.sprite.setVelocityX(this.velocity)
-        this.player.sprite.scaleX = 2;
+        this.player.sprite.setFlipX(false);
 
         this.player.sprite.anims.play('run', true)
         running = true
@@ -156,9 +163,9 @@ export default class MainScene extends Phaser.Scene {
       for (const [id, otherPlayer] of Object.entries(this.otherPlayers)) {
         if(this.gameClass.state.players.hasOwnProperty(id)){
           if(otherPlayer.sprite.x < this.gameClass.state.players[id].x){
-            otherPlayer.sprite.scaleX = 2;
+            otherPlayer.sprite.setFlipX(false);
           }else if(otherPlayer.sprite.x > this.gameClass.state.players[id].x){
-            otherPlayer.sprite.scaleX = -2;
+            otherPlayer.sprite.setFlipX(true);
           }
           
           otherPlayer.sprite.x = this.gameClass.state.players[id].x;
