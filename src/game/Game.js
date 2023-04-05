@@ -1,3 +1,6 @@
+import MovementComponent from "./Components/MovementComponent";
+import Player from "./Entities/Player";
+
 export default class Game
 {
     constructor(){
@@ -7,14 +10,10 @@ export default class Game
     }
 
     addPlayer(playerId) {
-        var player = {
-            id: playerId,
-            x: this.getRandomInt(0, 200),
-            y: this.getRandomInt(0, 200),
-            animation: 'idle',
-        }
-
-        this.state.players[playerId] = player;
+        var player = new Player(playerId);
+        player.addComponent(new MovementComponent());
+        
+        this.state.players[player.playerId] = player;
 
         return player;
     }
@@ -33,11 +32,5 @@ export default class Game
 
     getState() {
         return this.state;
-    }
-
-    getRandomInt(min, max) {
-        min = Math.ceil(min);
-        max = Math.floor(max);
-        return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 }

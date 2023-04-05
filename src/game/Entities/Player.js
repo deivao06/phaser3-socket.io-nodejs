@@ -1,7 +1,9 @@
 import Entity from "./Entity";
 
 export default class Player extends Entity {
-    constructor() {
+    constructor(playerId) {
         super();
+        
+        this.playerId = playerId;
     }
 }
