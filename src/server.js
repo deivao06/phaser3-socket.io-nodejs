@@ -20,6 +20,7 @@ app.get('/', (req, res) => {
 app.use(express.static(path.resolve('dist')))
 app.use(express.static(path.resolve('public')))
 app.use('/game', express.static(path.resolve('src/game')))
+app.use('/utils', express.static(path.resolve('src/utils')))
 
 // make the server listen to requests
 const server = app.listen(PORT, () => {

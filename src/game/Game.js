@@ -1,5 +1,4 @@
-import MovementComponent from "./Components/MovementComponent";
-import Player from "./Entities/Player";
+import Player from "./Entities/Player.js";
 
 export default class Game
 {
@@ -11,8 +10,6 @@ export default class Game
 
     addPlayer(playerId) {
         var player = new Player(playerId);
-        player.addComponent(new MovementComponent());
-        
         this.state.players[player.playerId] = player;
 
         return player;

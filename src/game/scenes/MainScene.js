@@ -1,11 +1,14 @@
+import InputHandlerComponent from "../Components/InputHandlerComponent.js";
+import SpriteComponent from "../Components/SpriteComponent.js";
+import Player from "../Entities/Player.js";
 import Game from "../Game.js";
+import { randomNumber } from "../../utils/utils.js";
 
 export default class MainScene extends Phaser.Scene {
   constructor () {
     super("main-scene");
 
     this.cursors = null;
-    this.velocity = 100;
   }
 
   preload() {
@@ -23,8 +26,8 @@ export default class MainScene extends Phaser.Scene {
     this.player = {};
     this.otherPlayers = {};
 
-    this.eventHandlers();
     this.cursors = this.input.keyboard.createCursorKeys()
+    this.eventHandlers();
   }
 
   update() {
@@ -50,26 +53,36 @@ export default class MainScene extends Phaser.Scene {
   }
 
   onNewPlayer(player) {
-    this.player = player;
-    this.player.sprite = this.physics.add.sprite(this.player.x, this.player.y, 'tileset');
-    this.player.sprite.setCollideWorldBounds(true);
-    this.player.sprite.setScale(2);
-    this.player.sprite.setSize(16, 16);
-    this.player.sprite.setOffset(0, 16);
+    this.player = new Player(player.playerId);
+    this.player.addComponent(new SpriteComponent(this.physics, this.anims));
+    this.player.addComponent(new InputHandlerComponent(this.player, this.cursors));
 
-    this.anims.create({
-      key: 'idle',
-      frames: this.anims.generateFrameNumbers('tileset', { start: 72, end: 74 }),
+    this.player.components.SpriteComponent.addSprite(randomNumber(0, 200), 
+                                                      randomNumber(0, 200),
+                                                      'tileset');
+
+    this.player.components.SpriteComponent.setCollideWorldBounds(true);
+    this.player.components.SpriteComponent.setScale(2);
+    this.player.components.SpriteComponent.setSize(16, 16);
+    this.player.components.SpriteComponent.setOffset(0, 16);
+
+    this.player.components.SpriteComponent.createAnim({
+      name: 'idle',
+      start: '72',
+      end: '74',
       frameRate: 8,
-      repeat: -1
-    })
+      repeat: -1,
+      tileset: 'tileset'
+    });
 
-    this.anims.create({
-      key: 'run',
-      frames: this.anims.generateFrameNumbers('tileset', { start: 75, end: 79 }),
+    this.player.components.SpriteComponent.createAnim({
+      name: 'run',
+      start: '75',
+      end: '79',
       frameRate: 12,
-      repeat: -1
-    })
+      repeat: -1,
+      tileset: 'tileset'
+    });
   }
 
   onUpdateState(state) {
@@ -107,54 +120,8 @@ export default class MainScene extends Phaser.Scene {
   }
 
   handlePlayerInput() {
-    var running = false;
-
     if(Object.keys(this.player).length !== 0){
-      if (this.cursors.left.isDown) {
-        this.player.sprite.setVelocityX(-this.velocity);
-        this.player.sprite.setFlipX(true);
-
-        this.player.sprite.anims.play('run', true)
-        running = true
-      } else if (this.cursors.right.isDown) {
-        this.player.sprite.setVelocityX(this.velocity)
-        this.player.sprite.setFlipX(false);
-
-        this.player.sprite.anims.play('run', true)
-        running = true
-      } else {
-        this.player.sprite.setVelocityX(0);
-      }
-
-      if (this.cursors.up.isDown){
-        this.player.sprite.setVelocityY(-this.velocity)
-
-        this.player.sprite.anims.play('run', true)
-        running = true
-      } else if (this.cursors.down.isDown) {
-        this.player.sprite.setVelocityY(this.velocity)
-
-        this.player.sprite.anims.play('run', true);
-        running = true
-      } else {
-        this.player.sprite.setVelocityY(0);
-      }
-
-      if(!running){
-        this.player.sprite.anims.play('idle', true);
-
-        this.socket.emit('update player position', {
-          x: this.player.sprite.x,
-          y: this.player.sprite.y,
-          animation: 'idle'
-        })
-      }else{
-        this.socket.emit('update player position', {
-          x: this.player.sprite.x,
-          y: this.player.sprite.y,
-          animation: 'run'
-        })
-      }
+      this.player.components.InputHandlerComponent.handleInput();
     }
   }
 
