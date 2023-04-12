@@ -2,7 +2,6 @@ import InputHandlerComponent from "../Components/InputHandlerComponent.js";
 import SpriteComponent from "../Components/SpriteComponent.js";
 import Player from "../Entities/Player.js";
 import Game from "../Game.js";
-import { randomNumber } from "../../utils/utils.js";
 
 export default class MainScene extends Phaser.Scene {
   constructor () {
@@ -41,6 +40,7 @@ export default class MainScene extends Phaser.Scene {
     this.socket.on('new player', this.onNewPlayer.bind(this))
     this.socket.on('create players', this.onCreateOtherPlayers.bind(this));
     this.socket.on('update state', this.onUpdateState.bind(this));
+    this.socket.on('update player position', this.onUpdatePlayerPosition.bind(this));
   }
 
   onSocketConnected() {
@@ -54,12 +54,12 @@ export default class MainScene extends Phaser.Scene {
 
   onNewPlayer(player) {
     this.player = new Player(player.playerId);
-    this.player.addComponent(new SpriteComponent(this.physics, this.anims));
-    this.player.addComponent(new InputHandlerComponent(this.player, this.cursors));
+    this.player.fromJson(player);
 
-    this.player.components.SpriteComponent.addSprite(randomNumber(0, 200), 
-                                                      randomNumber(0, 200),
-                                                      'tileset');
+    this.player.addComponent(new SpriteComponent(this.physics, this.anims));
+    this.player.addComponent(new InputHandlerComponent(this.player, this.cursors, this.socket));
+
+    this.player.components.SpriteComponent.addSprite(this.player.spawnX, this.player.spawnY, 'tileset');
 
     this.player.components.SpriteComponent.setCollideWorldBounds(true);
     this.player.components.SpriteComponent.setScale(2);
@@ -88,35 +88,57 @@ export default class MainScene extends Phaser.Scene {
   onUpdateState(state) {
     this.gameClass.setState(state);
 
-    this.handleOtherPlayersAnimation();
-    this.handleOtherPlayersMovement();    
     this.handleOtherPlayersDisconnection();    
+  }
+
+  onUpdatePlayerPosition(player) {
+    var otherPlayer = this.otherPlayers[player.playerId];
+
+    if(player.x < otherPlayer.components.SpriteComponent.sprite.x){
+      otherPlayer.components.SpriteComponent.sprite.setFlipX(true);
+    }else if(player.x > otherPlayer.components.SpriteComponent.sprite.x){
+      otherPlayer.components.SpriteComponent.sprite.setFlipX(false);
+    }
+
+    otherPlayer.components.SpriteComponent.sprite.x = player.x;
+    otherPlayer.components.SpriteComponent.sprite.y = player.y;
+
+    if (otherPlayer.components.SpriteComponent.sprite.anims.isPlaying && 
+        otherPlayer.components.SpriteComponent.sprite.anims.currentAnim.key != 
+        player.animation) {
+        otherPlayer.components.SpriteComponent.playAnim(player.animation);
+    }
   }
 
   onCreateOtherPlayers(state) {
     this.gameClass.setState(state);
-
+    
     for (const [id, player] of Object.entries(this.gameClass.state.players)) {
-      if(id != this.player.id){
+      if(id != this.player.playerId){
         this.createOtherPlayer(player);
       }
     }
   }
 
-  createOtherPlayer(player) {
-    player.sprite = this.physics.add.sprite(player.x, player.y, 'tileset');
-    player.sprite.setCollideWorldBounds(true);
-    player.sprite.setScale(2);
-    player.sprite.tint = 0xfff000;
-    player.sprite.setSize(16, 16);
-    player.sprite.setOffset(0, 16);
-    player.sprite.setPushable(false);
+  createOtherPlayer(playerJson) {
+    var player = new Player(playerJson.playerId);
+    player.fromJson(playerJson);
 
-    player.sprite.anims.play(player.animation);
+    player.addComponent(new SpriteComponent(this.physics, this.anims));
 
-    this.physics.add.collider(this.player.sprite, player.sprite);
+    player.components.SpriteComponent.addSprite(player.spawnX, player.spawnY, 'tileset');
 
-    this.otherPlayers[player.id] = player;
+    player.components.SpriteComponent.setCollideWorldBounds(true);
+    player.components.SpriteComponent.setScale(2);
+    player.components.SpriteComponent.setSize(16, 16);
+    player.components.SpriteComponent.setOffset(0, 16);
+    player.components.SpriteComponent.setTint(0xfff000);
+    player.components.SpriteComponent.setPushable(false);
+
+    player.components.SpriteComponent.playAnim('idle');
+
+    this.physics.add.collider(this.player.components.SpriteComponent.sprite, player.components.SpriteComponent.sprite);
+    this.otherPlayers[player.playerId] = player;
   }
 
   handlePlayerInput() {
@@ -125,40 +147,11 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
-  handleOtherPlayersMovement() {
-    if(Object.keys(this.otherPlayers).length > 0){
-      for (const [id, otherPlayer] of Object.entries(this.otherPlayers)) {
-        if(this.gameClass.state.players.hasOwnProperty(id)){
-          if(otherPlayer.sprite.x < this.gameClass.state.players[id].x){
-            otherPlayer.sprite.setFlipX(false);
-          }else if(otherPlayer.sprite.x > this.gameClass.state.players[id].x){
-            otherPlayer.sprite.setFlipX(true);
-          }
-          
-          otherPlayer.sprite.x = this.gameClass.state.players[id].x;
-          otherPlayer.sprite.y = this.gameClass.state.players[id].y;
-        }
-      }
-    }
-  }
-
-  handleOtherPlayersAnimation() {
-    if(Object.keys(this.otherPlayers).length > 0){
-      for (const [id, otherPlayer] of Object.entries(this.otherPlayers)) {
-        if(this.gameClass.state.players.hasOwnProperty(id)){
-          if (otherPlayer.sprite.anims.isPlaying && otherPlayer.sprite.anims.currentAnim.key != this.gameClass.state.players[id].animation) {
-            otherPlayer.sprite.anims.play(this.gameClass.state.players[id].animation);
-          }
-        }
-      }
-    }
-  }
-
   handleOtherPlayersDisconnection() {
     if(Object.keys(this.otherPlayers).length > 0){
       for (const [id, otherPlayer] of Object.entries(this.otherPlayers)) {
         if(!this.gameClass.state.players.hasOwnProperty(id)){
-          otherPlayer.sprite.destroy();
+          otherPlayer.components.SpriteComponent.sprite.destroy();
           delete this.otherPlayers[id];
         }
       }

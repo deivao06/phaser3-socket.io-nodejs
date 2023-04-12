@@ -8,6 +8,8 @@ export default class SpriteComponent {
 
         this.x = null;
         this.y = null;
+
+        this.animation = null;
     }
 
     addSprite(x, y , tileset) {
@@ -33,6 +35,14 @@ export default class SpriteComponent {
         this.sprite.setOffset(x, y);
     }
 
+    setTint(tint) {
+        this.sprite.tint = tint;
+    }
+
+    setPushable(bool) {
+        this.sprite.setPushable(bool);
+    }
+
     createAnim({
         name: name, 
         start: start, 
@@ -51,5 +61,6 @@ export default class SpriteComponent {
 
     playAnim(anim, bool = false) {
         this.sprite.anims.play(anim, bool);
+        this.animation = anim;
     }
 }

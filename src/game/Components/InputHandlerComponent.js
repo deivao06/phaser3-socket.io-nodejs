@@ -1,8 +1,9 @@
 export default class InputHandlerComponent {
-    constructor(player, cursors) {
+    constructor(player, cursors, socket) {
         this.name = 'InputHandlerComponent';
         this.player = player;
         this.cursors = cursors;
+        this.socket = socket;
 
         this.velocity = 100;
     }
@@ -41,20 +42,14 @@ export default class InputHandlerComponent {
         }
     
         if(!running){
-            this.player.components.SpriteComponent.playAnim('idle', true);
-    
-            // this.socket.emit('update player position', {
-            //   x: this.player.sprite.x,
-            //   y: this.player.sprite.y,
-            //   animation: 'idle'
-            // })
-        }else{
-            // this.socket.emit('update player position', {
-            //   x: this.player.sprite.x,
-            //   y: this.player.sprite.y,
-            //   animation: 'run'
-            // })
+            this.player.components.SpriteComponent.playAnim('idle', true);   
         }
+        
+        this.socket.emit('update player position', {
+            x: this.player.components.SpriteComponent.sprite.x,
+            y: this.player.components.SpriteComponent.sprite.y,
+            animation: this.player.components.SpriteComponent.animation
+        })
 
         return this.player;
     }
